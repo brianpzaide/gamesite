@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Game Site :: NTTT</title>
+    <style>
+
+      body {
+        background: lightyellow;
+      }
+
+      canvas {
+        padding: 0;
+        margin: auto;
+        display: block;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 style="color:crimson;font-family:cursive;text-align: center;">Nested Tic Tac Toe</h2>
+    <p id="player" style="color:crimson;font-family:cursive;text-align: center;">you are player a</p>
+    <p id="current_player" style="color:crimson;font-family:cursive;text-align: center;"></p>
+    <canvas id="myCanvas" width="540" height="540"></canvas>
+
+
+    <script type="text/javascript" language="javascript">
+
+      var conn;
+      const homepage = "http://192.168.50.4:8080/gamesite";
+      const baseImageUrl = "http://192.168.50.4:8080/static/";
+      var player = 0;
+      const imagesname = ['xsmall.png','osmall.png']
+      var imagesArr = [];
+      //grid width and height
+      const lineWidth = 2;	  
+      const numCells=81;
+      const cellSize = 60;
+
+      const to_grid = new Map([
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [3, 1],
+        [4, 1],
+        [5, 1],
+        [6, 2],
+        [7, 2],
+        [8, 2],
+      ]);
+
+      const to_start_row_start_col = new Map([
+        [0, {start_row: 0, start_col: 0}],
+        [1, {start_row: 0, start_col: 3}],
+        [2, {start_row: 0, start_col: 6}],
+        [3, {start_row: 3, start_col: 0}],
+        [4, {start_row: 3, start_col: 3}],
+        [5, {start_row: 3, start_col: 6}],
+        [6, {start_row: 6, start_col: 0}],
+        [7, {start_row: 6, start_col: 3}],
+        [8, {start_row: 6, start_col: 6}],
+      ]);
+    
+
+      var c = document.getElementById("myCanvas");
+      var context = c.getContext("2d");
+
+      (function(){
+  
+        for(var i=0; i<2; i++){
+          const img = new Image(50,50);
+          img.src = baseImageUrl + imagesname[i];
+          imagesArr.push(img);
+        }
+
+        //main
+        context.strokeStyle = "black";
+        //draw vertical lines
+        context.moveTo(180, 5);
+        context.lineTo(180, 535);
+
+        context.moveTo(360, 5);
+        context.lineTo(360, 535);
+
+        //draw horizontal lines
+        context.moveTo(5, 180);
+        context.lineTo(535, 180);
+
+        context.moveTo(5, 360);
+        context.lineTo(535, 360);
+
+        context.lineWidth = lineWidth*2;
+        context.stroke();
+
+        //sub
+        for (var i=0; i<3; i++){
+          for (var j=60; j<=420; j+=180) {
+            //draw vertical lines
+            context.moveTo(j, 10+180*i);
+            context.lineTo(j, 180*(i+1)-10);
+
+            context.moveTo(j+60, 10+180*i);
+            context.lineTo(j+60, 180*(i+1)-10);
+
+            //draw horizontal lines
+            context.moveTo(10+180*i, j);
+            context.lineTo(180*(i+1)-10, j);
+
+            context.moveTo(10+180*i, j+60);
+            context.lineTo(180*(i+1)-10, j+60);
+          }
+        }
+        context.lineWidth = lineWidth;
+        context.stroke();
+
+        if (window["WebSocket"]) {
+          conn = new WebSocket("ws://" + document.location.host + "/gamesite/rooms/%s/ws");
+          conn.onclose = function (evt) {
+            alert("Connection closed.Browser will be redirected to home page");
+            window.location.href = homepage;
+          }
+          conn.onmessage = function (evt) {    
+            const msg = evt.data.split("\n");
+            console.log(msg);
+            switch(msg[0]) {
+              case "MOVE_EVENT":
+                const nextPlayer = msg[1];
+                document.getElementById("current_player").textContent = nextPlayer + " to play";
+                const playerNo = Number(msg[2]);
+                const gamedata = msg[3].split(" ")
+                // const gridNo = Number(gamedata[0]);
+                // const row = Number(gamedata[1]);
+                // const col = Number(gamedata[2]);
+                // console.log(nextPlayer, playerNo, gridNo, row, col);
+                // updateBoard(playerNo, gridNo, row, col);
+                updateBoard(gamedata, playerNo);
+                break;
+              case "GAME_WAIT":
+                document.getElementById("player").textContent = msg[1];
+                break;
+              case "GAME_START":
+                document.getElementById("player").textContent = msg[1];
+                document.getElementById("current_player").textContent = "X to play";
+                break;
+              case "GAME_EVENT":
+                alert(msg[1]);
+                window.location.href = homepage;
+                break;
+            case "TIME_OUT":
+               alert("Time Out:\n" + msg[1])
+               window.location.href = homepage;
+               break;
+             case "ROOM_UNAVAILABLE":
+               alert("Room requested is not available.\nYou may create a new room from the home page.")
+               window.location.href = homepage;
+               break;
+            }  
+          }
+        } else {
+            var item = document.createElement("div");
+            alert("Your browser does not support WebSockets.");
+            window.location.href = homepage;
+        }
+
+        c.addEventListener('mousedown', (e) => {
+          var col = Math.floor(e.offsetX / cellSize);
+          var row = Math.floor(e.offsetY / cellSize);
+
+          var gridNo = to_grid.get(row)*3 + to_grid.get(col);
+
+          col = col - to_start_row_start_col.get(gridNo).start_col;
+          row = row - to_start_row_start_col.get(gridNo).start_row;
+          conn.send(gridNo + " " + row + " " + col);  
+        })
+      }());
+
+      function updateBoard(gamedata, playerNo){
+        const gridNo = Number(gamedata[0]);
+        let row = Number(gamedata[1]);
+        let col = Number(gamedata[2]);
+        // console.log(nextPlayer, playerNo, gridNo, row, col);
+        col = to_start_row_start_col.get(gridNo).start_col + col;
+        row = to_start_row_start_col.get(gridNo).start_row + row;
+        let start_x = col * cellSize + 5;
+        let start_y = row * cellSize + 5;
+        context.drawImage(imagesArr[playerNo-2], start_x, start_y, cellSize-10, cellSize-10);
+
+        if (gamedata.length == 4){
+          const gridOwner = Number(gamedata[3])
+          start_x = to_start_row_start_col.get(gridNo).start_col* cellSize + 25
+          start_y = to_start_row_start_col.get(gridNo).start_row* cellSize + 25
+          context.drawImage(imagesArr[gridOwner-2], start_x, start_y, 2*cellSize+10, 2*cellSize+10);
+        }
+      }
+
+    </script>
+  </body>
+</html>

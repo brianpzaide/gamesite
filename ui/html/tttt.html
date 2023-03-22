@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Game Site :: TTT</title>
+    <style>
+      body {
+        background: lightyellow;
+      }
+      canvas {
+        padding: 0;
+        margin: auto;
+        display: block;
+        background: #fff;
+      }
+    </style> 
+  </head>
+  <body>
+    <h2 style="color:crimson;font-family:cursive;text-align: center;">Three Tic Tac Toe</h2>
+    <p id="player" style="color:crimson;font-family:cursive;text-align: center;">you are player a</p>
+    <p id="current_player" style="color:crimson;font-family:cursive;text-align: center;"></p>
+    <canvas id="myCanvas" width="720" height="300"></canvas>
+    
+    <script type="text/javascript" language="javascript">
+
+      var conn;
+      const homepage = "http://192.168.50.4:8080/gamesite";
+      const baseImageUrl = "http://192.168.50.4:8080/static/";
+      var player = 0;
+      const imagesname = ['xlarge.png','olarge.png']  
+      var imagesArr = [];
+      const startboad_x = [15, 255, 495];
+      var boards = [];
+      //grid width and height
+      const lineWidth = 2;
+      const cellSize = 70;
+      const boardSize = 210;
+      const x_offset = 15;
+      const y_offset = 45;
+
+          
+      var c = document.getElementById("myCanvas");
+      var context = c.getContext("2d");
+      (function(){
+        for(var i=0; i<2; i++){
+          const img = new Image(50,50);
+          img.src = baseImageUrl + imagesname[i];
+          imagesArr.push(img);
+        }
+        for(var i=0; i<3; i++) {
+          const shape = new Path2D();
+          shape.moveTo(startboad_x[i], y_offset);
+          shape.lineTo(startboad_x[i]+boardSize, y_offset);
+          shape.lineTo(startboad_x[i]+boardSize, y_offset+boardSize);
+          shape.lineTo(startboad_x[i], y_offset+boardSize);
+          shape.closePath();
+          boards.push({start_x:startboad_x[i], shape:shape});
+
+          context.lineWidth = lineWidth*2;
+
+          //draw vertical lines
+          context.moveTo(startboad_x[i]+(boardSize/3), y_offset);
+          context.lineTo(startboad_x[i]+(boardSize/3), boardSize+y_offset);
+
+          context.moveTo(startboad_x[i]+2*(boardSize)/3, y_offset);
+          context.lineTo(startboad_x[i]+2*(boardSize)/3, boardSize+y_offset);
+
+          //draw horizontal lines
+          context.moveTo(startboad_x[i], y_offset+(boardSize)/3);
+          context.lineTo(boardSize + startboad_x[i], y_offset+(boardSize)/3);
+            
+          context.moveTo(startboad_x[i], y_offset+2*(boardSize)/3);
+          context.lineTo(boardSize + startboad_x[i], y_offset+2*(boardSize)/3);
+          context.lineWidth = lineWidth;
+          context.stroke();
+
+        }
+
+        if (window["WebSocket"]) {
+          conn = new WebSocket("ws://" + document.location.host + "/gamesite/rooms/%s/ws");
+          conn.onclose = function (evt) {
+            alert("Connection closed.Browser will be redirected to home page");
+            window.location.href = homepage;
+          }
+          conn.onmessage = function (evt) {
+            
+            const msg = evt.data.split("\n");
+            console.log(msg);
+            switch(msg[0]) {
+              case "MOVE_EVENT":
+                const nextPlayer = msg[1];
+                document.getElementById("current_player").textContent = nextPlayer + " to play";
+
+                const playerNo = Number(msg[2]);
+                const gamedata = msg[3].split(" ")
+                updateBoard(gamedata, playerNo);
+                break;
+              case "GAME_WAIT":
+                document.getElementById("player").textContent = msg[1];
+                break;
+              case "GAME_START":
+                document.getElementById("player").textContent = msg[1];
+                document.getElementById("current_player").textContent = "X to play";
+                break;
+              case "GAME_EVENT":
+                alert(msg[1]);
+                window.location.href = homepage;
+                break;
+              case "TIME_OUT":
+                alert("Time Out:\n" + msg[1])
+                window.location.href = homepage;
+                break;
+              case "ROOM_UNAVAILABLE":
+                alert("Room requested is not available.\nYou may create a new room from the home page.")
+                window.location.href = homepage;
+                break;
+            } 
+          }
+        } else {
+          var item = document.createElement("div");
+          alert("Your browser does not support WebSockets.");
+          window.location.href = homepage;
+        }
+
+        c.addEventListener('mousedown', (e) => {
+
+          const board = boards.filter(board => context.isPointInPath(board.shape, e.offsetX, e.offsetY));
+          if(board[0] != null){
+            const col = Math.floor((e.offsetX - board[0].start_x) / cellSize);
+            const row = Math.floor((e.offsetY - y_offset) / cellSize);
+
+            var gridNo = 0;
+            if(board[0].start_x == 255){
+              gridNo = 1;
+            }else if (board[0].start_x > 255){
+              gridNo = 2;
+            }
+
+            conn.send(gridNo + " " + row + " " + col);
+          }
+        });
+      }());
+
+
+      function updateBoard(gamedata, playerNo){
+        const gridNo = Number(gamedata[0]);
+        const row = Number(gamedata[1]);
+        const col = Number(gamedata[2]);
+        // console.log(nextPlayer, playerNo, gridNo, row, col);
+        const start_x = col * cellSize + startboad_x[gridNo] + 5;
+        const start_y = row * cellSize + y_offset+5;
+        //console.log("click (x, y)", e.offsetX, e.offsetY);
+        console.log("(row, col)", row, col);
+        console.log("(start_x, start_y)", start_x, start_y);
+        context.drawImage(imagesArr[playerNo-2], start_x, start_y, cellSize-10, cellSize-10);
+
+        if (gamedata.length == 4){
+          const gridOwner = Number(gamedata[3])
+          const start_x = startboad_x[gridNo] + 30;
+          const start_y = y_offset + 35;
+          context.drawImage(imagesArr[gridOwner-2], start_x, start_y, 2*cellSize+10, 2*cellSize+10);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Game Site :: NTTT</title>
+    <style>
+
+      body {
+        background: lightyellow;
+      }
+
+      canvas {
+        padding: 0;
+        margin: auto;
+        display: block;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 style="color:crimson;font-family:cursive;text-align: center;">Reversi</h2>
+    <h3 id="score" style="color:crimson;font-family:cursive;text-align: center;"></h3>
+    <p id="player" style="color:crimson;font-family:cursive;text-align: center;"></p>
+    <p id="current_player" style="color:crimson;font-family:cursive;text-align: center;"></p>
+    
+    <canvas id="myCanvas" width="480" height="480"></canvas>
+
+
+    <script type="text/javascript" language="javascript">
+
+      var conn;
+      const homepage = "http://192.168.50.4:8080/gamesite";
+      const baseImageUrl = "http://192.168.50.4:8080/static/";
+      var player = 2;
+      const imagesname = ['white.png','black.png']
+      var imagesArr = [];
+      //grid width and height
+      const lineWidth = 2;	  
+      const numCells = 64;
+      const cellSize = 60;
+
+      var c = document.getElementById("myCanvas");
+      var context = c.getContext("2d");
+      c.style.background = "#376832";
+
+      (function(){
+        getImages()
+
+        //main
+        context.strokeStyle = "black";
+        //draw vertical lines
+        context.moveTo(3, 3);
+        context.lineTo(3, 477);
+
+        context.moveTo(477, 3);
+        context.lineTo(477, 477);
+
+        //draw horizontal lines
+        context.moveTo(3, 3);
+        context.lineTo(477, 3);
+
+        context.moveTo(3, 477);
+        context.lineTo(477, 477);
+
+        context.lineWidth = lineWidth*2;
+        context.stroke();
+
+        context.lineWidth = lineWidth;
+
+        for (var i=60; i<=420; i+=60) {
+            //draw vertical lines
+            context.moveTo(i, 3);
+            context.lineTo(i, 477);
+
+            //draw horizontal lines
+            context.moveTo(3, i);
+            context.lineTo(477, i);
+          }
+
+        
+        context.lineWidth = lineWidth;
+        context.stroke();
+
+        window.addEventListener('load', function(){
+          let initialdata = Array(64).fill(0)
+          initialdata[27] = 2
+          initialdata[28] = 3
+          initialdata[35] = 3
+          initialdata[36] = 2
+          updateBoard(initialdata)
+        })
+        
+        
+        if (window["WebSocket"]) {
+          conn = new WebSocket("ws://" + document.location.host + "/gamesite/rooms/%s/ws");
+
+          
+
+          conn.onclose = function (evt) {
+            alert("Connection closed.Browser will be redirected to home page");
+            window.location.href = homepage;
+          }
+          conn.onmessage = function (evt) {    
+            const msg = evt.data.split("\n");
+            console.log(msg);
+            switch(msg[0]) {
+              case "MOVE_EVENT":
+                const nextPlayer = msg[1];
+                document.getElementById("current_player").textContent = nextPlayer + " to play";
+                const playerNo = Number(msg[2]);
+                const gamedata = msg[3].split(" ")
+                console.log(gamedata)
+                const scores = msg[3].split("-")
+                document.getElementById("score").textContent = `White: ${scores[0]} Black: ${scores[1]}`
+                updateBoard(msg[4].split(" "));
+                break;
+              case "GAME_WAIT":
+                document.getElementById("player").textContent = msg[1]
+                break;
+              case "GAME_START":
+                console.log("game-start-event", msg)
+                document.getElementById("player").textContent = msg[1];
+                document.getElementById("current_player").textContent = "White to play";
+                break;
+              case "GAME_EVENT":
+                alert(msg[1]);
+                window.location.href = homepage;
+                break;
+            case "TIME_OUT":
+               alert("Time Out:\n" + msg[1])
+               window.location.href = homepage;
+               break;
+             case "ROOM_UNAVAILABLE":
+               alert("Room requested is not available.\nYou may create a new room from the home page.")
+               window.location.href = homepage;
+               break;
+            }  
+          }
+        } else {
+            var item = document.createElement("div");
+            alert("Your browser does not support WebSockets.");
+            window.location.href = homepage;
+        }
+
+        c.addEventListener('mousedown', (e) => {
+          var col = Math.floor(e.offsetX / cellSize);
+          var row = Math.floor(e.offsetY / cellSize);
+          conn.send(row + " " + col);
+          // updateBoard(player, row, col)
+          // if (player === 2){
+          //   player = 3
+          // }else{
+          //   player = 2
+          // }
+        })
+      }());
+
+    function updateBoard(gameboard){
+      console.log(gameboard)
+      for (let r =0; r < 8; r++){
+        for (let c = 0; c < 8; c++){
+          const value = Number(gameboard[r*8+c]);
+          if (value >= 2) {
+            const start_x = c * cellSize + 5;
+            const start_y = r * cellSize + 5;
+            context.drawImage(imagesArr[value-2], start_x, start_y, cellSize-10, cellSize-10);
+          }
+        }
+        
+      }
+    }
+
+    function getImages() {
+
+      for(var i=0; i<2; i++){
+          const img = new Image(50,50);
+          img.src = baseImageUrl + imagesname[i];
+          imagesArr.push(img);
+        }
+      // for(var i=0; i<2; i++){
+      //   const img = new Image(100,100);
+      //   const xhttp = new XMLHttpRequest();
+      //   xhttp.responseType = 'arraybuffer';
+      //   xhttp.readyState = function() {
+      //     var arr = new Uint8Array(this.response);
+      //     // Convert the int array to a binary string
+      //     // We have to use apply() as we are converting an *array*
+      //     // and String.fromCharCode() takes one or more single values, not
+      //     // an array.
+      //     var raw = String.fromCharCode.apply(null,arr);
+
+      //     // This works!!!
+      //     var b64=btoa(raw);
+      //     var dataURL="data:image/png;base64,"+b64;
+      //     // const blb = new Blob([xhttp.response], {type: 'image/png'});
+      //     // const url = (window.URL || window.webkitURL).createObjectURL(blb);
+      //     img.src = dataURL;
+      //     imagesArr.push(img)
+      //   }
+      //   xhttp.open('GET', baseImageUrl+imagesname[i]);
+      //   xhttp.send();
+      // }
+    }
+
+    </script>
+  </body>
+</html>

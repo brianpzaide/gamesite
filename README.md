@@ -1,6 +1,6 @@
 # Gamesite
 
-A collection of all simple games(more to add later), that I find interesting. All the games are turned based games.
+A collection of all simple games(more to add later), that I find interesting. All the games are turned based.
 
 The following games are implemented
 

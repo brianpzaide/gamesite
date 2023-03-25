@@ -24,7 +24,7 @@ The rooms are automatically destroyed when:
 
 `make build`
 
-Thanks to [stuffbin](https://github.com/knadh/stuffbin) the above command produces just one single binary.
+Thanks to [stuffbin](https://github.com/knadh/stuffbin) the above command produces just one single binary, with all the html files and images stuffed into it.
 
 #### Architecture
 This application consists of 3 components

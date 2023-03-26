@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 )
 
-const uiDir = "./ui/html"
+//const uiDir = "./ui/html"
 
 type TemplateData struct {
 	Games []struct {
@@ -72,7 +71,7 @@ func main() {
 	setHomePage(fs)
 
 	for k, v := range gamePages {
-		data, err := os.ReadFile(filepath.Join(uiDir, v))
+		data, err := fs.Read("/" + v) //os.ReadFile(filepath.Join(uiDir, v))
 		if err != nil {
 			log.Fatal(err)
 		}

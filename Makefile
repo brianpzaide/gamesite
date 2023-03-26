@@ -5,7 +5,7 @@ STUFFED_BINARY_NAME=stuffedgamesite
 build:
 	@echo "Building..."
 	@env CGO_ENABLED=0  go build -ldflags="-s -w" -o ${BINARY_NAME} ./cmd/web
-	@${HOME}/go/bin/stuffbin -a stuff -in ${BINARY_NAME} -out ${STUFFED_BINARY_NAME} ui/static:/ ui/html:/ ui/templates/wshome.tmpl:/templates/wshome.tmpl
+	@/go/bin/stuffbin -a stuff -in ${BINARY_NAME} -out ${STUFFED_BINARY_NAME} ui/static:/ ui/html:/ ui/templates/wshome.tmpl:/templates/wshome.tmpl
 	@echo "Built!"
 
 ## run: builds and runs the application

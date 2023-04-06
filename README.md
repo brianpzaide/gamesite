@@ -26,6 +26,12 @@ The rooms are automatically destroyed when:
 
 Thanks to [stuffbin](https://github.com/knadh/stuffbin) the above command produces just one single binary, with all the html files and images stuffed into it.
 
+#### To run
+
+`make run`
+
+The application listens on port 8080.
+
 #### Architecture
 This application consists of 3 components
 

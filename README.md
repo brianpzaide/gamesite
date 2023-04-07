@@ -1,13 +1,17 @@
 # Gamesite
 
-A collection of all simple games(more to add later), that I find interesting. All the games are turned based.
+A collection of all simple games(more to add later), that I find interesting. All the games are turn based.
 
 The following games are implemented
 
-* Three tic tac toe
-* Nested tic tac toe
-* reversi
-* maxit
+* #### Three Tic Tac Toe
+  <img src="tttt.png" width="300" height="125">
+* #### Nested Tic Tac Toe
+  <img src="nttt.png" width="300" height="301">
+* #### Reversi
+  <img src="reversi.png" width="300" height="300">
+* #### [Maxit](https://play.google.com/store/apps/details?id=com.loonybot.maxitmonkey&gl=US)
+
 
 ### Idea
 A person selects a game, then creates a room and then shares the room's url with a friend they would like to play with.

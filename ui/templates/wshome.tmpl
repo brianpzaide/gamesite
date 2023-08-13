@@ -78,51 +78,51 @@
     <div class="row">
       <div class="card">
         <h4 style="color:crimson;font-family:cursive;text-align: center;">{{.GameName}}</h4>
-        <img src="http://192.168.50.4:8080/static/{{.GameImageURL}}" alt="Avatar" width="200" height="200">
+        <img src="{{.RootURL}}/static/{{.GameImageURL}}" alt="Avatar" width="200" height="200">
         <div class="container">
           <button class="button" onclick="createRoom({{.GameId}}, {{.GameName}})">Create</button> 
         </div>
       </div>
     </div>
   {{end}}
+  <script>
+
+    const baseurl = "{{.RootURL}}/gamesite/";
+
+    function createRoom(gameId, gameName) {
+      var xhttp = new XMLHttpRequest();
+      xhttp.open("GET", baseurl + "create/" + gameId, true);
+      xhttp.send();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          const obj = JSON.parse(this.responseText);
+          const roomurl = obj.roomurl;
+          const roomid = obj.roomid;
+          const roomcreatedtext = "Room for "+ gameName + " game created.\nRoom id is :" + roomid + ".\nPlease share the roomId with someone you want to play with.\nThe room will be destroyed automatically if other person does not join the room within 5 minutes."
+          alert(roomcreatedtext);
+          console.log(roomurl)
+          window.location.replace(baseurl+"rooms/"+roomid);
+        }
+      };
+    }
+
+    function joinFunction() {
+      let roomid = prompt("Please enter the roomID");
+      let text;
+      if (roomid == null || roomid == "") {
+        alert("roomid cannot be blank");
+      } else {
+        window.location.href = baseurl + "rooms/"+ roomid;
+      }  
+    }
+  </script>
   <button class="button_main" onclick="joinFunction()">Join</button>
 {{else}}
-  <h2>No games yet, come back later</h2>
+  <h2 style="color:crimson;font-family:cursive;text-align: center;">No games yet, come back later</h2>
 {{end}}
 
 
-<script>
 
-const baseurl = "http://192.168.50.4:8080/gamesite/";
-
-function createRoom(gameId, gameName) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.open("GET", baseurl + "create/" + gameId, true);
-  xhttp.send();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      const obj = JSON.parse(this.responseText);
-      const roomurl = obj.roomurl;
-      const roomid = obj.roomid;
-      const roomcreatedtext = "Room for "+ gameName + " game created.\nRoom id is :" + roomid + ".\nPlease share the roomId with someone you want to play with.\nThe room will be destroyed automatically if other person does not join the room within 5 minutes."
-      alert(roomcreatedtext);
-      console.log(roomurl)
-      window.location.replace(baseurl+"rooms/"+roomid);
-         
-    }
-  };
-}
-
-function joinFunction() {
-  let roomid = prompt("Please enter the roomID");
-  let text;
-  if (roomid == null || roomid == "") {
-    alert("roomid cannot be blank");
-  } else {
-    window.location.href = baseurl + "rooms/"+ roomid;
-  }  
-}
-</script>
 
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Gamesite
 
-A Go-based game server that hosts a collection of simple turn-based web games. It's designed with flexibility in mind, allowing for easy registration and addition of new games.
+A Go-based game server that hosts a collection of simple turn-based web games. It is designed with flexibility in mind, allowing for easy registration and addition of new games.
 
 ### Games Implemented (so far)
 
@@ -22,7 +22,6 @@ Players can select a game, create a room, and share the room's URL with a friend
 - The game reaches an end state.
 - The other player fails to join within the time limit.
 - A player fails to make a move within the time limit (adjustable).
-
 
 
 #### To build

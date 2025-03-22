@@ -11,16 +11,10 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-
-	"github.com/knadh/koanf/parsers/dotenv"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
 )
 
 type TemplateData struct {
-	RootURL string
-	Games   []struct {
-		RootURL      string
+	Games []struct {
 		GameImageURL string
 		GameId       string
 		GameName     string
@@ -44,7 +38,6 @@ var (
 	templateData *TemplateData
 
 	homePage string
-	root_url string
 )
 
 type envelope map[string]interface{}
@@ -52,24 +45,17 @@ type envelope map[string]interface{}
 var addr = flag.String("addr", ":8080", "http service address")
 
 func main() {
-	k := koanf.New(".")
-	if err := k.Load(file.Provider("config.env"), dotenv.Parser()); err != nil {
-		log.Fatalf("error loading config: %v", err)
-	}
-	root_url = k.String("ROOT_URL")
 
 	templateData = &TemplateData{
-		RootURL: root_url,
 		Games: []struct {
-			RootURL      string
 			GameImageURL string
 			GameId       string
 			GameName     string
 		}{
-			{RootURL: root_url, GameImageURL: "tttt.png", GameId: "tttt", GameName: "tttt"},
-			{RootURL: root_url, GameImageURL: "nttt.png", GameId: "nttt", GameName: "nttt"},
-			{RootURL: root_url, GameImageURL: "reversi.png", GameId: "reversi", GameName: "reversi"},
-			{RootURL: root_url, GameImageURL: "maxit.png", GameId: "maxit", GameName: "maxit"},
+			{GameImageURL: "tttt.png", GameId: "tttt", GameName: "tttt"},
+			{GameImageURL: "nttt.png", GameId: "nttt", GameName: "nttt"},
+			{GameImageURL: "reversi.png", GameId: "reversi", GameName: "reversi"},
+			{GameImageURL: "maxit.png", GameId: "maxit", GameName: "maxit"},
 		},
 	}
 

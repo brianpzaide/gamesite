@@ -22,7 +22,6 @@ func initFS() stuffbin.FileSystem {
 	}
 
 	fmt.Println("loaded files", fs.List())
-	// Read the file 'foo'.
 	_, err = fs.Get("/white.png")
 	if err != nil {
 		log.Fatalf("error reading white.png: %v", err)

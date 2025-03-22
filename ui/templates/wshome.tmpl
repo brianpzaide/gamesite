@@ -78,7 +78,7 @@
     <div class="row">
       <div class="card">
         <h4 style="color:crimson;font-family:cursive;text-align: center;">{{.GameName}}</h4>
-        <img src="{{.RootURL}}/static/{{.GameImageURL}}" alt="Avatar" width="200" height="200">
+        <img src="/static/{{.GameImageURL}}" alt="Avatar" width="200" height="200">
         <div class="container">
           <button class="button" onclick="createRoom({{.GameId}}, {{.GameName}})">Create</button> 
         </div>
@@ -87,7 +87,7 @@
   {{end}}
   <script>
 
-    const baseurl = "{{.RootURL}}/gamesite/";
+    const baseurl = "/gamesite/";
 
     function createRoom(gameId, gameName) {
       var xhttp = new XMLHttpRequest();

@@ -52,7 +52,7 @@ func (app *Config) getRoom(w http.ResponseWriter, r *http.Request) {
 	if gameType != "" {
 		gamePage := gamePages[gameType]
 
-		w.Write([]byte(fmt.Sprintf(gamePage, root_url, root_url, roomId)))
+		w.Write([]byte(fmt.Sprintf(gamePage, roomId)))
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)

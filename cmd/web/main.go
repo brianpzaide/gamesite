@@ -27,12 +27,14 @@ var (
 		"nttt":    "nttt.html",
 		"reversi": "reversi.html",
 		"maxit":   "maxit.html",
+		"poc":     "poc_1.html",
 	}
 	gameConstructors = map[string]func() games.Game{
 		"tttt":    games.NewTTTTGame,
 		"nttt":    games.NewNTTTGame,
 		"reversi": games.NewReversiGame,
 		"maxit":   games.NewMaxitGame,
+		"poc":     games.NewPOCGame,
 	}
 
 	templateData *TemplateData
@@ -56,6 +58,7 @@ func main() {
 			{GameImageURL: "nttt.png", GameId: "nttt", GameName: "nttt"},
 			{GameImageURL: "reversi.png", GameId: "reversi", GameName: "reversi"},
 			{GameImageURL: "maxit.png", GameId: "maxit", GameName: "maxit"},
+			{GameImageURL: "poc.png", GameId: "poc", GameName: "pawns only chess"},
 		},
 	}
 

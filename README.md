@@ -26,13 +26,18 @@ Players can select a game, create a room, and share the room's URL with a friend
 
 #### To build
 
-`make build`
+
+```bash
+make build
+```
 
 The above command generates a single binary using [stuffbin](https://github.com/knadh/stuffbin), bundling all HTML files and images.
 
 #### To run
 
-`make run`
+```bash
+make run
+```
 
 The application listens on port ```8080```.
 

@@ -64,6 +64,13 @@ func (poc *POC) performMove(fromRow, fromCol, toRow, toCol int) (int, []string) 
 	if poc.board[fromRow*poc_gridSize+fromCol] == currPlayer {
 		if poc.isValid(fromRow, fromCol, toRow, toCol) {
 			poc.board[fromRow*poc_gridSize+fromCol] = 0
+
+			// if it a diagonal first move then current player captures the opponents pawn
+			if (poc.board[toRow*poc_gridSize+toCol] == 0) &&
+				(poc.board[toRow*poc_gridSize+fromCol] != currPlayer) {
+				poc.board[toRow*poc_gridSize+fromCol] = 0
+			}
+
 			poc.board[toRow*poc_gridSize+toCol] = currPlayer
 
 			// delete the pawn from the initialPawns list
@@ -75,7 +82,7 @@ func (poc *POC) performMove(fromRow, fromCol, toRow, toCol int) (int, []string) 
 			}
 
 			movesForWhite, movesForBlack := poc.checkStatus()
-			if poc.currentPlayer == PLAYER1 {
+			if currPlayer == PLAYER1 {
 				if movesForBlack {
 					poc.currentPlayer = PLAYER2
 				}
@@ -117,7 +124,7 @@ func (poc *POC) isValidCheck(player, otherPlayer, startPoint, endPoint int) bool
 
 	if fromCol == toCol {
 		// check if the pawn is allowed to take two steps(only in it's first move)
-		if math.Abs(float64(fromRow)-float64(toRow)) > 1 {
+		if math.Abs(float64(fromRow)-float64(toRow)) == 2 {
 			if ok := poc.initialPawns[startPoint]; ok {
 				betweenCell := 0
 				if player == PLAYER1 {
@@ -133,6 +140,7 @@ func (poc *POC) isValidCheck(player, otherPlayer, startPoint, endPoint int) bool
 		}
 		return otherPlayer == 0
 	} else {
+		// checking for diagonal move to an empty square (allowed only if it is it's first move)
 		if otherPlayer == 0 {
 			if ok := poc.initialPawns[startPoint]; ok {
 				p := poc.board[poc_gridSize*toRow+fromCol]
@@ -183,10 +191,17 @@ func (poc *POC) checkStatus() (bool, bool) {
 			}
 			player := poc.board[row*poc_gridSize+col]
 			if player == PLAYER1 {
-				movesAvailableForWhite = poc.hasMoves(player, row, col)
+				whiteHasMoves := poc.hasMoves(player, row, col)
+				if whiteHasMoves {
+					movesAvailableForWhite = whiteHasMoves
+				}
+
 			}
 			if player == PLAYER2 {
-				movesAvailableForBlack = poc.hasMoves(player, row, col)
+				blackHasMoves := poc.hasMoves(player, row, col)
+				if blackHasMoves {
+					movesAvailableForBlack = blackHasMoves
+				}
 			}
 		}
 	}
@@ -195,7 +210,6 @@ func (poc *POC) checkStatus() (bool, bool) {
 		poc.gameStatus = IN_PROGRESS
 	} else {
 		poc.gameStatus = DRAW
-		return false, false
 	}
 	return movesAvailableForWhite, movesAvailableForBlack
 }

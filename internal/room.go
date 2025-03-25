@@ -99,8 +99,8 @@ func (r *Room) run() {
 						r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetCurrentPlayerSymbol(), initData))
 						r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetOtherPlayerSymbol(), initData))
 					} else {
-						r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s", r.game.GetCurrentPlayerSymbol()))
-						r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s", r.game.GetOtherPlayerSymbol()))
+						r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetCurrentPlayerSymbol(), 2))
+						r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetOtherPlayerSymbol(), 3))
 					}
 
 				} else {

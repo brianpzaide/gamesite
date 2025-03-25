@@ -37,9 +37,13 @@
       const lineWidth = 2;	  
       const numCells = 64;
       const cellSize = 60;
-      // is an array of length 2, first element in the array represents the pawn to move,and the second represents the destination of that pawn   
-      var player_move = [];
-      let gamedata = Array(64).fill(0)
+      // represents starting position (row and column) of the pawn to move   
+      var player_move_from = [];
+      const view_mappings = {
+        0:7, 1:6, 2:5, 3:4, 4:3, 5:2, 6:1, 7:0
+      }
+      
+      var gamedata = Array(64).fill(0)
 
       var c = document.getElementById("myCanvas");
       var context = c.getContext("2d");
@@ -53,13 +57,13 @@
 
         window.addEventListener('load', function(){
             // let initialdata = Array(64).fill(0)
-            if (player === 2){
+            if (player === 3){
                 for (let i = 0; i<16; i++){
                     gamedata[i] = 3;
                     gamedata[63-i] = 2;
                 }
             }
-            if (player === 3){
+            if (player === 2){
                 for (let i = 0; i<16; i++){
                     gamedata[i] = 2;
                     gamedata[63-i] = 3;
@@ -86,6 +90,7 @@
                 const playerNo = Number(msg[2]);
                 const gameboard = msg[3].split(" ")
                 console.log(gameboard)
+                gamedata = gameboard;
                 updateBoard(gameboard);
                 break;
               case "GAME_WAIT":
@@ -95,6 +100,7 @@
                 console.log("game-start-event", msg)
                 document.getElementById("player").textContent = msg[1];
                 document.getElementById("current_player").textContent = "White to play";
+                player = Number(msg[2])
                 break;
               case "GAME_EVENT":
                 alert(msg[1]);
@@ -117,20 +123,27 @@
         }
 
         c.addEventListener('mousedown', (e) => {
-            var col = Math.floor(e.offsetX / cellSize);
-            var row = Math.floor(e.offsetY / cellSize);
-            player_move[0] = 8*row + col
+            from_col = Math.floor(e.offsetX / cellSize);
+            from_row = Math.floor(e.offsetY / cellSize);
+            if (player == 2){
+              from_col = view_mappings[from_col];
+              from_row = view_mappings[from_row];
+            }            
         })
 
         c.addEventListener('mouseup', (e) => {
-            var col = Math.floor(e.offsetX / cellSize);
-            var row = Math.floor(e.offsetY / cellSize);
-            player_move[1] = 8*row + col
-            if (player_move[0] != player_move[1]){
-                makeMove();
-                player_move = [];
+            let to_col = Math.floor(e.offsetX / cellSize);
+            let to_row = Math.floor(e.offsetY / cellSize);
+            if (player == 2){
+                to_col = view_mappings[to_col];
+                to_row = view_mappings[to_row];
             }
-            //   conn.send(row + " " + col);
+            let destination = 8 * to_row + to_col;
+            let source = 8 * from_row + from_col;
+            if ( source != destination){
+                conn.send(from_row + " " + from_col + " " + to_row + " " + to_col);
+                // makeMove();
+            }
         })
       }());
 
@@ -176,13 +189,13 @@
 
         let k = 0
         for (let r = 0; r < 8; r++){
-            if (r % 2 === 0){
+            if (!(r & 1)){
                 k = 0
             }else{
                 k = 1
             }
             for (let c = 0; c < 8; c++){
-                if (k % 2 === 0){
+                if (!(k & 1)){
                     const start_x = (c * cellSize) + 2.5;
                     const start_y = (r * cellSize) + 2.5;
                     context.fillRect(start_x, start_y, cellSize-5, cellSize-5);
@@ -213,22 +226,24 @@
       function getImages() {
         for(var i=0; i<2; i++){
             const img = new Image(50,50);
-            img.src = imagesname[i];
+            img.src = baseImageUrl + imagesname[i];
             imagesArr.push(img);
           }
     }
 
     function updateBoard(gameboard){
         console.log(gameboard)
+        drawBoard()
         let k = 0
         for (let r =0; r < 8; r++){
-            if (r % 2 === 0){
-                    k = 0
-            }else{
-                k = 1
-            }
             for (let c = 0; c < 8; c++){
-                const value = Number(gameboard[r*8+c]);
+                let n_r = r;
+                let n_c = c;
+                if (player === 2){
+                  n_r = view_mappings[r];
+                  n_c = view_mappings[c];
+                }
+                const value = Number(gameboard[n_r*8 + n_c]);
                 if (value >= 2) {
                     const start_x = c * cellSize + 5;
                     const start_y = r * cellSize + 5;

@@ -27,7 +27,7 @@ var (
 		"nttt":    "nttt.html",
 		"reversi": "reversi.html",
 		"maxit":   "maxit.html",
-		"poc":     "poc_1.html",
+		"poc":     "poc.html",
 	}
 	gameConstructors = map[string]func() games.Game{
 		"tttt":    games.NewTTTTGame,

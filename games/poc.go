@@ -11,15 +11,17 @@ const poc_gridSize = 8
 var POC_PLAYER_SYMBOLS = [2]string{"White", "Black"}
 
 type POC struct {
-	board         []int
-	currentPlayer int
-	gameStatus    int
-	initialPawns  map[int]bool
+	board                []int
+	currentPlayer        int
+	gameStatus           int
+	initialPawns         map[int]bool
+	enPassantRiskedPawns map[int]bool
 }
 
 func NewPOCGame() Game {
 	board := make([]int, poc_gridSize*poc_gridSize)
 	initialPawns := make(map[int]bool)
+	enPassantRiskedPawns := make(map[int]bool)
 	for j := 0; j < poc_gridSize*poc_gridSize; j++ {
 		if j < 16 {
 			board[j] = PLAYER1
@@ -30,7 +32,13 @@ func NewPOCGame() Game {
 			initialPawns[j] = true
 		}
 	}
-	pocGame := &POC{board: board, currentPlayer: PLAYER1, gameStatus: IN_PROGRESS, initialPawns: initialPawns}
+	pocGame := &POC{
+		board:                board,
+		currentPlayer:        PLAYER1,
+		gameStatus:           IN_PROGRESS,
+		initialPawns:         initialPawns,
+		enPassantRiskedPawns: enPassantRiskedPawns,
+	}
 	return pocGame
 }
 
@@ -63,18 +71,35 @@ func (poc *POC) performMove(fromRow, fromCol, toRow, toCol int) (int, []string) 
 	// make move only for the correct current player
 	if poc.board[fromRow*poc_gridSize+fromCol] == currPlayer {
 		if poc.isValid(fromRow, fromCol, toRow, toCol) {
-			poc.board[fromRow*poc_gridSize+fromCol] = 0
+			startPosition := fromRow*poc_gridSize + fromCol
+			targetPosition := toRow*poc_gridSize + toCol
+			poc.board[startPosition] = 0
 
-			// if it a diagonal first move then current player captures the opponents pawn
-			if (poc.board[toRow*poc_gridSize+toCol] == 0) &&
-				(poc.board[toRow*poc_gridSize+fromCol] != currPlayer) {
-				poc.board[toRow*poc_gridSize+fromCol] = 0
+			// if the pawn takes two steps in it's first move, add it to the en-passant risked list
+			if ok := poc.initialPawns[startPosition]; ok && fromCol == toCol && math.Abs(float64(fromRow)-float64(toRow)) == 2 {
+				poc.enPassantRiskedPawns[targetPosition] = true
 			}
 
-			poc.board[toRow*poc_gridSize+toCol] = currPlayer
+			// if the move is an en-passant capture
+			if (poc.board[targetPosition] == 0) &&
+				(poc.board[fromRow*poc_gridSize+toCol] != currPlayer) {
 
-			// delete the pawn from the initialPawns list
-			delete(poc.initialPawns, fromRow*poc_gridSize+fromCol)
+				// capturing the enemy pawn
+				poc.board[fromRow*poc_gridSize+toCol] = 0
+				// deleting the enemy pawn, that was captured by en-passant from the en-passant risked pawns list
+				delete(poc.enPassantRiskedPawns, fromRow*poc_gridSize+toCol)
+			}
+
+			// delete the pawn that is about to be captured(diagonally) and was also en-passant risked
+			if poc.board[targetPosition] != currPlayer && poc.board[targetPosition] != 0 {
+				delete(poc.enPassantRiskedPawns, targetPosition)
+			}
+			// making the move
+			poc.board[targetPosition] = currPlayer
+
+			// delete the pawn from the initialPawns and the en-passant risked pawns lists
+			delete(poc.initialPawns, startPosition)
+			delete(poc.enPassantRiskedPawns, startPosition)
 
 			data := make([]string, 0)
 			for j := 0; j < poc_gridSize*poc_gridSize; j++ {
@@ -91,6 +116,8 @@ func (poc *POC) performMove(fromRow, fromCol, toRow, toCol int) (int, []string) 
 					poc.currentPlayer = PLAYER1
 				}
 			}
+
+			poc.printEnPassantRiskedPawns()
 
 			return poc.gameStatus, []string{strings.Join(data, " ")}
 		}
@@ -140,10 +167,12 @@ func (poc *POC) isValidCheck(player, otherPlayer, startPoint, endPoint int) bool
 		}
 		return otherPlayer == 0
 	} else {
-		// checking for diagonal move to an empty square (allowed only if it is it's first move)
+		// checking for diagonal move to an empty square (allowed only if it is an en-passant capture move)
 		if otherPlayer == 0 {
-			if ok := poc.initialPawns[startPoint]; ok {
-				p := poc.board[poc_gridSize*toRow+fromCol]
+			// checking if the enemy pawn is en-passant risked
+			if ok := poc.enPassantRiskedPawns[fromRow*poc_gridSize+toCol]; ok {
+				p := poc.board[fromRow*poc_gridSize+toCol]
+				// checking if the adjacent cell is indeed occupied by the en-passant risked enemy pawn
 				if p != 0 && p != player {
 					return true
 				}
@@ -239,4 +268,14 @@ func (poc *POC) hasMoves(player, fromRow, fromCol int) bool {
 		}
 		return false
 	}
+}
+
+func (poc *POC) printEnPassantRiskedPawns() {
+	fmt.Println("printing enpassant risked pawns")
+	sb := strings.Builder{}
+
+	for key, _ := range poc.enPassantRiskedPawns {
+		sb.WriteString(fmt.Sprintf("%d ", key))
+	}
+	fmt.Println(sb.String())
 }

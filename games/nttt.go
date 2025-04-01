@@ -64,11 +64,11 @@ func (nttt *NTTTGame) PerformMove(coords ...int) (int, []string) {
 func (nttt *NTTTGame) performMove(gridNumber, row, col int) (int, []string) {
 	status := nttt.checkGridStatus(gridNumber)
 	grid := nttt.grids[gridNumber]
-	fmt.Printf("NTTT gridNo: %d row: %d, col: %d\n", gridNumber, row, status)
+	// fmt.Printf("NTTT gridNo: %d row: %d, col: %d\n", gridNumber, row, status)
 	if status == IN_PROGRESS && grid[row*nttt_gridSize+col] == IN_PROGRESS {
 		grid[row*nttt_gridSize+col] = nttt.currentPlayer
-		fmt.Printf("playerNo: %d, status: %d\n", nttt.currentPlayer, nttt.checkGridStatus(gridNumber))
-		nttt.printBoard()
+		// fmt.Printf("playerNo: %d, status: %d\n", nttt.currentPlayer, nttt.checkGridStatus(gridNumber))
+		// nttt.printBoard()
 		gridStatus, gameStatus := nttt.checkStatus(gridNumber)
 		gamedata := fmt.Sprintf("%d %d %d", gridNumber, row, col)
 		if gridStatus == PLAYER1 {
@@ -78,7 +78,7 @@ func (nttt *NTTTGame) performMove(gridNumber, row, col int) (int, []string) {
 		}
 		return gameStatus, []string{gamedata}
 	}
-	fmt.Printf("playerNo: %d, status: %d\n", nttt.currentPlayer, status)
+	// fmt.Printf("playerNo: %d, status: %d\n", nttt.currentPlayer, status)
 	return -1, make([]string, 0)
 }
 
@@ -171,9 +171,9 @@ func (nttt *NTTTGame) isFull(gridNumber int) bool {
 	return true
 }
 
-func (nttt *NTTTGame) printBoard() {
-	for i := 0; i < 10; i++ {
-		fmt.Println(fmt.Sprintf("Board %d: ", i), nttt.grids[i])
-	}
+// func (nttt *NTTTGame) printBoard() {
+// 	for i := 0; i < 10; i++ {
+// 		fmt.Println(fmt.Sprintf("Board %d: ", i), nttt.grids[i])
+// 	}
 
-}
+// }

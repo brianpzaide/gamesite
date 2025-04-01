@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -21,14 +20,14 @@ func initFS() stuffbin.FileSystem {
 		log.Fatalf("error reading the stuffed binary %v", err)
 	}
 
-	fmt.Println("loaded files", fs.List())
+	// fmt.Println("loaded files", fs.List())
 	_, err = fs.Get("/white.png")
 	if err != nil {
 		log.Fatalf("error reading white.png: %v", err)
 	}
-	for _, f := range fs.List() {
-		fmt.Println("\t", f)
-	}
+	// for _, f := range fs.List() {
+	// 	fmt.Println("\t", f)
+	// }
 
 	return fs
 }

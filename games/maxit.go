@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"time"
 )
 
 const (
-	MIN            = -10
+	MIN            = 0
 	MAX            = 10
 	maxit_gridSize = 6
 )
@@ -27,9 +26,9 @@ type cell struct {
 	status, value int
 }
 
-func init() {
-	rand.Seed(time.Now().Unix())
-}
+// func init() {
+// 	rand.Seed(time.Now().Unix())
+// }
 
 func randInt() int {
 	return MIN + rand.Intn(MAX-MIN)
@@ -129,9 +128,9 @@ func (maxit *MaxitGame) getStatus(row, col int) (int, int) {
 			player2Moves += 1
 		}
 	}
-	fmt.Println("player1Moves:", player1Moves, "player2Moves:", player2Moves)
+	// fmt.Println("player1Moves:", player1Moves, "player2Moves:", player2Moves)
 	if player1Moves == 0 && player2Moves == 0 {
-		fmt.Println("both players have no moves")
+		// fmt.Println("both players have no moves")
 		if maxit.scores[0] > maxit.scores[1] {
 			status = PLAYER1
 		} else if maxit.scores[0] < maxit.scores[1] {
@@ -141,10 +140,10 @@ func (maxit *MaxitGame) getStatus(row, col int) (int, int) {
 		}
 		nextPlayer = -1
 	} else if player1Moves == 0 {
-		fmt.Println("player1 has no moves")
+		// fmt.Println("player1 has no moves")
 		nextPlayer = PLAYER2
 	} else if player2Moves == 0 {
-		fmt.Println("player2 has no moves")
+		// fmt.Println("player2 has no moves")
 		nextPlayer = PLAYER1
 	} else {
 		if maxit.currentPlayer == PLAYER1 {

@@ -63,7 +63,7 @@ func (app *Config) serveWs(w http.ResponseWriter, r *http.Request) {
 
 	roomId := chi.URLParam(r, "roomId")
 
-	fmt.Println("Main: connecting to hub", roomId)
+	// fmt.Println("Main: connecting to hub", roomId)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	log.Println("connected", conn.RemoteAddr())

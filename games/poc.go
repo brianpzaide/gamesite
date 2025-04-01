@@ -117,7 +117,7 @@ func (poc *POC) performMove(fromRow, fromCol, toRow, toCol int) (int, []string) 
 				}
 			}
 
-			poc.printEnPassantRiskedPawns()
+			// poc.printEnPassantRiskedPawns()
 
 			return poc.gameStatus, []string{strings.Join(data, " ")}
 		}
@@ -270,12 +270,12 @@ func (poc *POC) hasMoves(player, fromRow, fromCol int) bool {
 	}
 }
 
-func (poc *POC) printEnPassantRiskedPawns() {
-	fmt.Println("printing enpassant risked pawns")
-	sb := strings.Builder{}
+// func (poc *POC) printEnPassantRiskedPawns() {
+// 	fmt.Println("printing enpassant risked pawns")
+// 	sb := strings.Builder{}
 
-	for key, _ := range poc.enPassantRiskedPawns {
-		sb.WriteString(fmt.Sprintf("%d ", key))
-	}
-	fmt.Println(sb.String())
-}
+// 	for key, _ := range poc.enPassantRiskedPawns {
+// 		sb.WriteString(fmt.Sprintf("%d ", key))
+// 	}
+// 	fmt.Println(sb.String())
+// }

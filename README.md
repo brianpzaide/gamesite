@@ -13,6 +13,9 @@ A Go-based game server that hosts a collection of simple turn-based web games. I
 * #### Reversi
   <img src="reversi.png" width="300" height="300">
 
+* #### Pawns only Chess
+  <img src="poc.png" width="300" height="300">
+
 * #### [Maxit](https://play.google.com/store/apps/details?id=com.loonybot.maxitmonkey&gl=US)
 
 

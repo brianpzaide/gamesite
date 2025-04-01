@@ -72,8 +72,8 @@ func (tttt *TTTTGame) performMove(gridNumber, row, col int) (int, []string) {
 	grid := tttt.grids[gridNumber]
 	if status == IN_PROGRESS && grid[row*tttt_gridSize+col] == IN_PROGRESS {
 		grid[row*tttt_gridSize+col] = tttt.currentPlayer
-		fmt.Printf("playerNo: %d, status: %d\n", tttt.currentPlayer, tttt.checkGridStatus(gridNumber))
-		tttt.printBoard()
+		// fmt.Printf("playerNo: %d, status: %d\n", tttt.currentPlayer, tttt.checkGridStatus(gridNumber))
+		// tttt.printBoard()
 		gridStatus, gameStatus := tttt.checkStatus(gridNumber)
 
 		gamedata := fmt.Sprintf("%d %d %d", gridNumber, row, col)
@@ -85,7 +85,7 @@ func (tttt *TTTTGame) performMove(gridNumber, row, col int) (int, []string) {
 
 		return gameStatus, []string{gamedata}
 	}
-	fmt.Printf("playerNo: %d, status: %d\n", tttt.currentPlayer, status)
+	// fmt.Printf("playerNo: %d, status: %d\n", tttt.currentPlayer, status)
 
 	return -1, make([]string, 0)
 }
@@ -204,9 +204,9 @@ func (tttt *TTTTGame) isFull(gridNumber int) bool {
 	return true
 }
 
-func (tttt *TTTTGame) printBoard() {
-	for i := 0; i < 3; i++ {
-		fmt.Println(fmt.Sprintf("Board %d: ", i), tttt.grids[i])
-	}
+// func (tttt *TTTTGame) printBoard() {
+// 	for i := 0; i < 3; i++ {
+// 		fmt.Println(fmt.Sprintf("Board %d: ", i), tttt.grids[i])
+// 	}
 
-}
+// }

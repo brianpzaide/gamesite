@@ -1,9 +1,7 @@
 package internal
 
 import (
-	"fmt"
 	"hunaidsav/gamesite/games"
-	"log"
 	"sync"
 
 	"github.com/google/uuid"
@@ -147,16 +145,16 @@ func createRoom(gameConstructor func() games.Game, gameType string) string {
 
 	id := uuid.New().String()
 	terminateChan := make(chan bool)
-	fmt.Println("room created with id", id)
+	// fmt.Println("room created with id", id)
 
 	hubWg.Add(1)
 	room := newRoom(gameConstructor, gameType, id, terminateChan)
-	log.Println("room created")
+	// log.Println("room created")
 	rooms[id] = struct {
 		room          *Room
 		terminateChan chan bool
 	}{room, terminateChan}
-	log.Println("size of rooms: ", len(rooms))
+	// log.Println("size of rooms: ", len(rooms))
 	go room.run()
 
 	return id
@@ -173,11 +171,11 @@ func roomExists(roomId string) string {
 func createClient(roomId string, conn *websocket.Conn) bool {
 	if roomStruct, found := rooms[roomId]; found {
 		client := &Client{room: roomStruct.room, conn: conn, send: make(chan []byte)}
-		log.Println("in the hub.createClient before regestering client")
+		// log.Println("in the hub.createClient before regestering client")
 		client.room.register <- client
 		go client.readPump()
 		go client.writePump()
-		log.Println("in the hub.createClient after running off readpump and writepump")
+		// log.Println("in the hub.createClient after running off readpump and writepump")
 		return found
 	} else {
 		return found

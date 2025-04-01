@@ -140,7 +140,7 @@ func (r *Room) run() {
 				} else if moveby == r.game.GetCurrentPlayer() {
 
 					msgSplit := strings.Split(string(msg), " ")
-					fmt.Println(string(msg))
+					// fmt.Println(string(msg))
 					msgArgs := make([]int, 0)
 					for _, msgElement := range msgSplit {
 						if k, err := strconv.Atoi(msgElement); err == nil {

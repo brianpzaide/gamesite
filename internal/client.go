@@ -3,7 +3,6 @@ package internal
 import (
 	//"fmt"
 
-	"fmt"
 	"strings"
 	"time"
 
@@ -60,7 +59,7 @@ func (c *Client) readPump() {
 			return
 
 		}
-		fmt.Println("readpump default:", string(message))
+		// fmt.Println("readpump default:", string(message))
 		c.room.broadcast <- &ClientMessage{client: c, msg: message}
 	}
 }

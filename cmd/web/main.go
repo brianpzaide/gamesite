@@ -45,8 +45,15 @@ var (
 type envelope map[string]interface{}
 
 var addr = flag.String("addr", ":8080", "http service address")
+var redisAddr = flag.String("redis-addr", os.Getenv("GAMESITE_REDIS_ADDR"), "REDIS ADDR")
+var serverID = flag.String("server-id", os.Getenv("GAMESITE_SERVER_ID"), "SERVER ID")
 
 func main() {
+	flag.Parse()
+
+	if *serverID == "" {
+		log.Fatalln("server id not provided. Server id must be set either as a flag `--server-id` or as an environment variable `GAMESITE_SERVER_ID`.")
+	}
 
 	templateData = &TemplateData{
 		Games: []struct {
@@ -82,11 +89,14 @@ func main() {
 		gamePages[k] = string(data)
 	}
 
+	if *redisAddr == "" {
+		*redisAddr = "localhost:6379"
+	}
+
+	rdb := getRedisClient()
 	stopHub := make(chan struct{})
 	mainWg := &sync.WaitGroup{}
-	internal.StartHub(mainWg, stopHub)
-
-	flag.Parse()
+	internal.StartHub(rdb, *serverID, mainWg, stopHub)
 
 	srv := &http.Server{
 		Addr:    *addr,
@@ -119,4 +129,6 @@ func main() {
 
 	//wait for the hub to shutdown
 	mainWg.Wait()
+
+	rdb.Close()
 }

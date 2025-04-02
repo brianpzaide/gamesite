@@ -1,8 +1,6 @@
 package internal
 
 import (
-	//"fmt"
-
 	"strings"
 	"time"
 
@@ -10,6 +8,7 @@ import (
 )
 
 const (
+	redisTTL = 60 * time.Second
 	readWait = 60 * time.Second
 
 	pongWait = 40 * time.Second

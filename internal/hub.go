@@ -1,11 +1,13 @@
 package internal
 
 import (
+	"context"
 	"hunaidsav/gamesite/games"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -75,6 +77,8 @@ var (
 	})
 	hubWg  = &sync.WaitGroup{}
 	mainWg *sync.WaitGroup
+	rdb    *redis.Client
+	sID    string
 )
 
 func runListener(terminateChan chan struct{}) {
@@ -126,7 +130,9 @@ func runDoer() {
 	shutdownAllRooms()
 }
 
-func StartHub(wg *sync.WaitGroup, terminateChan chan struct{}) {
+func StartHub(redisClient *redis.Client, serverID string, wg *sync.WaitGroup, terminateChan chan struct{}) {
+	rdb = redisClient
+	sID = serverID
 	mainWg = wg
 	mainWg.Add(2)
 
@@ -155,6 +161,10 @@ func createRoom(gameConstructor func() games.Game, gameType string) string {
 		terminateChan chan bool
 	}{room, terminateChan}
 	// log.Println("size of rooms: ", len(rooms))
+
+	// insert the roomid to the redis
+	rdb.Set(context.Background(), id, sID, redisTTL).Err()
+
 	go room.run()
 
 	return id

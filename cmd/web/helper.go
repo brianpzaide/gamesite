@@ -25,9 +25,6 @@ func initFS() stuffbin.FileSystem {
 	if err != nil {
 		log.Fatalf("error reading white.png: %v", err)
 	}
-	// for _, f := range fs.List() {
-	// 	fmt.Println("\t", f)
-	// }
 
 	return fs
 }

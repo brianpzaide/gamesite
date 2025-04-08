@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	redisTTL = 60 * time.Second
+	redisTTL = 180 * time.Second
 	readWait = 60 * time.Second
 
 	pongWait = 40 * time.Second

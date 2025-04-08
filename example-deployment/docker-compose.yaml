@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  db:
+    image: 'valkey/valkey'
+    restart: always
+    networks:
+      - db-net
+
+  app1:
+    build:
+      context: ../
+    environment:
+      GAMESITE_SERVER_ID: app1
+      GAMESITE_REDIS_ADDR: db:6379
+    networks:
+      - db-net
+  
+  app2:
+    build:
+      context: ../
+    environment:
+      GAMESITE_SERVER_ID: app2
+      GAMESITE_REDIS_ADDR: db:6379
+    networks:
+      - db-net
+  
+  app3:
+    build:
+      context: ../
+    environment:
+      GAMESITE_SERVER_ID: app3
+      GAMESITE_REDIS_ADDR: db:6379
+    networks:
+      - db-net
+  
+  reverseproxy:
+    build:
+      context: .
+      dockerfile: haproxy-dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - db-net
+
+  
+networks:
+  db-net: {}

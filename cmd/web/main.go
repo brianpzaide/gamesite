@@ -93,7 +93,11 @@ func main() {
 		*redisAddr = "localhost:6379"
 	}
 
-	rdb := getRedisClient()
+	rdb, err := getRedisClient()
+	if err != nil {
+		log.Fatalln("Error connecting to redis.")
+	}
+
 	stopHub := make(chan struct{})
 	mainWg := &sync.WaitGroup{}
 	internal.StartHub(rdb, *serverID, mainWg, stopHub)
@@ -117,7 +121,7 @@ func main() {
 	}()
 
 	//run the server in the main go routine
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	log.Println("Listening on port", addr)
 	if err != nil {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)

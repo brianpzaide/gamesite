@@ -1,0 +1,38 @@
+FROM debian:bullseye-slim AS builder
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libssl-dev \
+    libpcre3-dev \
+    liblua5.3-dev \
+    wget \
+    lua5.3 \
+    liblua5.3-dev \
+    luarocks \
+    && luarocks install redis-lua \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LUA_INC=/usr/include/lua5.3
+ENV LUA_LIB=/usr/lib/x86_64-linux-gnu
+ENV HAPROXY_VERSION=2.8.0
+
+RUN wget http://www.haproxy.org/download/2.8/src/haproxy-${HAPROXY_VERSION}.tar.gz && \
+    tar xzvf haproxy-${HAPROXY_VERSION}.tar.gz && \
+    cd haproxy-${HAPROXY_VERSION} && \
+    make TARGET=linux-glibc USE_LUA=1 LUA_INC=${LUA_INC} LUA_LIB=${LUA_LIB} && \
+    make install
+
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y \
+    lua5.3 \
+    liblua5.3-dev \
+    luarocks \
+    && luarocks install redis-lua \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LUA_PATH=/usr/local/share/lua/5.3/?.lua
+
+COPY --from=builder /usr/local/sbin/haproxy /usr/local/sbin/haproxy
+COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
+COPY haproxy_redis_lookup.lua /usr/local/etc/haproxy/haproxy_redis_lookup.lua
+CMD ["/usr/local/sbin/haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg", "-db"]

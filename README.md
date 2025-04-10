@@ -53,7 +53,7 @@ The application consists of 3 components
 
 #### Example Deployment
 
-To scale horizontally, we deploy multiple game‑server instances. Since each room is an in‑memory object holding the game state, all players for a given room must hit the same server. We solve this in HAProxy with a small Lua script: on each request HAProxy extracts the ```room_id``` from the path, looks up its server in Redis, and then routes the client to the correct backend.
+To scale horizontally, we deploy multiple game‑server instances. Since each room is an in‑memory object holding the game state, all players for a given room must hit the same server. We solve this using HAProxy with a small Lua script: on each request HAProxy extracts the ```room_id``` from the path, looks up its server in Redis, and then routes the client to the correct backend.
 
 ```mermaid
 flowchart LR
@@ -85,4 +85,4 @@ flowchart LR
 
 2) Subsequent Joins: User B (or any invitee) visits `/gamesite/rooms/{roomID}` or `/gamesite/rooms/{roomID}/ws`. The Lua action extracts `{roomID}` from the path, queries Redis (`room:{roomID}`), retrieves the associated server (e.g., app2), and routes the request to that server.
 
-3) WebSocker Upgrade: For ```/ws```, same lookup logic applies, HAproxy ensures the upgrade handshake and all traffic go to the correct game server holding the room.
+3) WebSocket Upgrade: For ```/ws```, same lookup logic applies, HAproxy ensures the upgrade handshake and all traffic go to the correct game server holding the room.

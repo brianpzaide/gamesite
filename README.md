@@ -63,7 +63,7 @@ flowchart LR
     end
 
     subgraph Edge
-      HA[HAProxy<br>(custom Lua)]
+      HA[HAProxy(custom Lua)]
     end
 
     subgraph Backends

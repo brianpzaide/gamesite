@@ -70,7 +70,7 @@ graph LR
       G1[Game Server 1]
       G2[Game Server 2]
       G3[Game Server 3]
-      R[Redis/Valkeyrie]
+      R[Redis]
     end
 
     A --> HA

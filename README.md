@@ -79,9 +79,6 @@ flowchart LR
     HA --> G2
     HA --> G3
     HA --> R
-    G1 --> R
-    G2 --> R
-    G3 --> R
 ```
 ##### Flow
 1) Room Creation: User A sends GET `/gamesite/create/{gametype}` to HAProxy. HAProxy proxies the request to a random game server (e.g., Game Server 2). Game Server 2 creates a new room in its in‑memory and stores a mapping ```room:{ID} → app2``` into Redis.

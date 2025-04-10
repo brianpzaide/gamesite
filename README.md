@@ -56,21 +56,21 @@ The application consists of 3 components
 To scale horizontally, we deploy multiple game‑server instances. Since each room is an in‑memory object holding the game state, all players for a given room must hit the same server. We solve this in HAProxy with a small Lua script: on each request HAProxy extracts the ```room_id``` from the path, looks up its server in Redis, and then routes the client to the correct backend.
 
 ```mermaid
-graph LR
+flowchart LR
     subgraph Client
-      A[User A] 
-      B[User B]
+      A[User A]
+      B[User B]
     end
 
     subgraph Edge
-      HA[HAProxy\n(custom Lua)]
+      HA[HAProxy<br>(custom Lua)]
     end
 
     subgraph Backends
-      G1[Game Server 1]
-      G2[Game Server 2]
-      G3[Game Server 3]
-      R[Redis]
+      G1[Game Server 1]
+      G2[Game Server 2]
+      G3[Game Server 3]
+      R[Redis/Valkeyrie]
     end
 
     A --> HA

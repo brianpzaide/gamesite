@@ -86,3 +86,6 @@ flowchart LR
 2) Subsequent Joins: User B (or any invitee) visits `/gamesite/rooms/{roomID}` or `/gamesite/rooms/{roomID}/ws`. The Lua action extracts `{roomID}` from the path, queries Redis (`room:{roomID}`), retrieves the associated server (e.g., app2), and routes the request to that server.
 
 3) WebSocket Upgrade: For ```/ws```, same lookup logic applies, HAproxy ensures the upgrade handshake and all traffic go to the correct game server holding the room.
+
+#### Contributing
+This project was built for learning purposes, and I would appreciate your feedback. Pull requests are welcome, especially those that improve game logic or enhance existing features.

@@ -18,12 +18,19 @@
     </style>
   </head>
   <body>
-    <h2 style="color:crimson;font-family:cursive;text-align: center;">POC</h2>
+    <h2 style="color:crimson;font-family:cursive;text-align: center;">Pawns only Chess</h2>
     <p id="player" style="color:crimson;font-family:cursive;text-align: center;"></p>
     <p id="current_player" style="color:crimson;font-family:cursive;text-align: center;"></p>
     
     <canvas id="myCanvas" width="480" height="480"></canvas>
 
+    <h4 style="color:crimson;font-family:cursive;text-align: center;">Rules:</h4>
+    <p style="color:crimson;font-family:cursive;text-align: center;">Pawns move one square forward at a time, unless it's their first move so they can move two squares.</p>
+    <p style="color:crimson;font-family:cursive;text-align: center;">Pawns cannot move forward if there's another pawn in front of them.</p>
+    <p style="color:crimson;font-family:cursive;text-align: center;">Pawns can capture the enemy piece diagonally.</p>
+    <p style="color:crimson;font-family:cursive;text-align: center;">If either player succeeds in moving one of their pawns to the last opposite rank (rank 8 for white and rank 1 for black), wins the game.</p>
+    <p style="color:crimson;font-family:cursive;text-align: center;">If one of the players runs out of pawns, the other player is the winner.</p>
+    <p style="color:crimson;font-family:cursive;text-align: center;">Stalemate or draw occurs when a player can't make a valid move on his/her turn.</p>
 
     <script type="text/javascript" language="javascript">
 

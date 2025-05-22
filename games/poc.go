@@ -206,8 +206,8 @@ func (poc *POC) checkStatus() (bool, bool) {
 		}
 	}
 
-	movesAvailableForWhite := false
-	movesAvailableForBlack := false
+	movesAvailableForWhite, whitePawns := false, 0
+	movesAvailableForBlack, blackPawns := false, 0
 
 	//for all the currently occupied cells check if the corresponding pawns can make a move
 	for row := 0; row <= 7; row++ {
@@ -220,6 +220,7 @@ func (poc *POC) checkStatus() (bool, bool) {
 			}
 			player := poc.board[row*poc_gridSize+col]
 			if player == PLAYER1 {
+				whitePawns += 1
 				whiteHasMoves := poc.hasMoves(player, row, col)
 				if whiteHasMoves {
 					movesAvailableForWhite = whiteHasMoves
@@ -227,6 +228,7 @@ func (poc *POC) checkStatus() (bool, bool) {
 
 			}
 			if player == PLAYER2 {
+				blackPawns += 1
 				blackHasMoves := poc.hasMoves(player, row, col)
 				if blackHasMoves {
 					movesAvailableForBlack = blackHasMoves
@@ -235,7 +237,24 @@ func (poc *POC) checkStatus() (bool, bool) {
 		}
 	}
 
-	if movesAvailableForWhite || movesAvailableForBlack {
+	if whitePawns == 0 {
+		poc.gameStatus = PLAYER2
+		return false, false
+	}
+
+	if blackPawns == 0 {
+		poc.gameStatus = PLAYER1
+		return false, false
+	}
+
+	nextPlayer := -1
+	if poc.currentPlayer == PLAYER1 {
+		nextPlayer = PLAYER2
+	} else {
+		nextPlayer = PLAYER1
+	}
+
+	if (nextPlayer == PLAYER1 && movesAvailableForWhite) || (nextPlayer == PLAYER2 && movesAvailableForBlack) {
 		poc.gameStatus = IN_PROGRESS
 	} else {
 		poc.gameStatus = DRAW

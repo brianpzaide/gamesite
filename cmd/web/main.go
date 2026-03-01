@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 )
 
@@ -45,15 +44,9 @@ var (
 type envelope map[string]interface{}
 
 var addr = flag.String("addr", ":8080", "http service address")
-var redisAddr = flag.String("redis-addr", os.Getenv("GAMESITE_REDIS_ADDR"), "REDIS ADDR")
-var serverID = flag.String("server-id", os.Getenv("GAMESITE_SERVER_ID"), "SERVER ID")
 
 func main() {
 	flag.Parse()
-
-	if *serverID == "" {
-		log.Fatalln("server id not provided. Server id must be set either as a flag `--server-id` or as an environment variable `GAMESITE_SERVER_ID`.")
-	}
 
 	templateData = &TemplateData{
 		Games: []struct {
@@ -73,10 +66,13 @@ func main() {
 	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	fs := initFS()
 
-	app := &Config{
+	hub := internal.NewHub()
+
+	app := &App{
 		fs:       fs,
 		InfoLog:  infoLog,
 		ErrorLog: errorLog,
+		Hub:      hub,
 	}
 
 	setHomePage(fs)
@@ -88,19 +84,6 @@ func main() {
 		}
 		gamePages[k] = string(data)
 	}
-
-	if *redisAddr == "" {
-		*redisAddr = "localhost:6379"
-	}
-
-	rdb, err := getRedisClient()
-	if err != nil {
-		log.Fatalln("Error connecting to redis.")
-	}
-
-	stopHub := make(chan struct{})
-	mainWg := &sync.WaitGroup{}
-	internal.StartHub(rdb, *serverID, mainWg, stopHub)
 
 	srv := &http.Server{
 		Addr:    *addr,
@@ -121,18 +104,14 @@ func main() {
 	}()
 
 	//run the server in the main go routine
-	err = srv.ListenAndServe()
+	err := srv.ListenAndServe()
 	log.Println("Listening on port", addr)
-	if err != nil {
+
+	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
 	<-idleConnsClosed
 
-	//send terminating signal to the hub and
-	close(stopHub)
+	hub.Shutdown()
 
-	//wait for the hub to shutdown
-	mainWg.Wait()
-
-	rdb.Close()
 }

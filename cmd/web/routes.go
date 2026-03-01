@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (app *Config) routes() http.Handler {
+func (app *App) routes() http.Handler {
 
 	r := chi.NewRouter()
 

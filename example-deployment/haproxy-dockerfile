@@ -1,38 +1,51 @@
 FROM debian:bullseye-slim AS builder
 
-RUN apt-get update && apt-get install -y \
+ENV HAPROXY_VERSION=2.8.0 \
+    LUA_INC=/usr/include/lua5.3 \
+    LUA_LIB=/usr/lib/x86_64-linux-gnu
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libssl-dev \
     libpcre3-dev \
     liblua5.3-dev \
-    wget \
     lua5.3 \
-    liblua5.3-dev \
     luarocks \
-    && luarocks install redis-lua \
+    wget \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ENV LUA_INC=/usr/include/lua5.3
-ENV LUA_LIB=/usr/lib/x86_64-linux-gnu
-ENV HAPROXY_VERSION=2.8.0
+# Install redis lua module
+RUN luarocks install redis-lua
 
-RUN wget http://www.haproxy.org/download/2.8/src/haproxy-${HAPROXY_VERSION}.tar.gz && \
-    tar xzvf haproxy-${HAPROXY_VERSION}.tar.gz && \
-    cd haproxy-${HAPROXY_VERSION} && \
-    make TARGET=linux-glibc USE_LUA=1 LUA_INC=${LUA_INC} LUA_LIB=${LUA_LIB} && \
-    make install
+# Build HAProxy
+RUN wget -q http://www.haproxy.org/download/2.8/src/haproxy-${HAPROXY_VERSION}.tar.gz \
+    && tar xzf haproxy-${HAPROXY_VERSION}.tar.gz \
+    && cd haproxy-${HAPROXY_VERSION} \
+    && make -j"$(nproc)" TARGET=linux-glibc USE_LUA=1 LUA_INC=${LUA_INC} LUA_LIB=${LUA_LIB} \
+    && make install-bin \
+    && strip /usr/local/sbin/haproxy \
+    && cd / \
+    && rm -rf haproxy-${HAPROXY_VERSION}*
 
 FROM debian:bullseye-slim
-RUN apt-get update && apt-get install -y \
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     lua5.3 \
-    liblua5.3-dev \
-    luarocks \
-    && luarocks install redis-lua \
+    liblua5.3-0 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-ENV LUA_PATH=/usr/local/share/lua/5.3/?.lua
+ENV LUA_PATH="/usr/local/share/lua/5.3/?.lua;;"
 
+# Copy haproxy
 COPY --from=builder /usr/local/sbin/haproxy /usr/local/sbin/haproxy
+
+# 🔥 Copy installed Lua rocks
+COPY --from=builder /usr/local/share/lua /usr/local/share/lua
+COPY --from=builder /usr/local/lib/lua /usr/local/lib/lua
+
 COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 COPY haproxy_redis_lookup.lua /usr/local/etc/haproxy/haproxy_redis_lookup.lua
+
 CMD ["/usr/local/sbin/haproxy", "-f", "/usr/local/etc/haproxy/haproxy.cfg", "-db"]

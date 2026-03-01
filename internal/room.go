@@ -8,187 +8,207 @@ import (
 	"time"
 )
 
+const moveTimeout = 60 * time.Second
+
 type ClientMessage struct {
 	client *Client
 	msg    []byte
 }
 
 type Room struct {
-	clients       []*Client
-	broadcast     chan *ClientMessage
-	register      chan *Client
-	unregister    chan *ClientMessage
-	players       map[*Client]int
-	gameType      string
-	game          games.Game
-	roomId        string
-	terminateChan chan bool
+	ID         string
+	game       games.Game
+	gameType   string
+	hub        *Hub
+	register   chan *Client
+	unregister chan *ClientMessage
+	broadcast  chan *ClientMessage
+	stop       chan bool
+
+	clients []*Client
+	players map[*Client]int
+
+	currentPlayerSymbol string
 }
 
-func newRoom(gameConstructor func() games.Game, gametype string, roomId string, terminateChan chan bool) *Room {
-
+func NewRoom(id string, game games.Game, gameType string, hub *Hub) *Room {
 	return &Room{
-		broadcast:  make(chan *ClientMessage),
-		register:   make(chan *Client),
-		unregister: make(chan *ClientMessage),
-		//clients read and write messages to the users(browsers)
-		clients: make([]*Client, 0),
-		//players is used to make sure that only the game's current player is making the move
-		//and also to know who the winner or loser is
-		players:  make(map[*Client]int),
-		gameType: gametype,
-		game:     gameConstructor(),
-		roomId:   roomId,
-		//send signal to close the room
-		terminateChan: terminateChan,
+		ID:                  id,
+		game:                game,
+		gameType:            gameType,
+		hub:                 hub,
+		register:            make(chan *Client),
+		unregister:          make(chan *ClientMessage),
+		broadcast:           make(chan *ClientMessage),
+		stop:                make(chan bool),
+		clients:             []*Client{},
+		players:             map[*Client]int{},
+		currentPlayerSymbol: game.GetCurrentPlayerSymbol(),
 	}
 }
 
-func (r *Room) run() {
-
-	terminateSignal := false
-
-	ticker := time.NewTicker(readWait)
-	unregisterCount := 0
-	currentPlayer := "X"
-
-	defer func() {
-		ticker.Stop()
-		if !terminateSignal {
-			ch := make(chan bool)
-			HubChan <- &DeleteRoomMsg{RoomId: r.roomId, ReceiveChan: ch}
-			<-ch
-		}
-		hubWg.Done()
-	}()
+func (r *Room) Run() {
+	ticker := time.NewTicker(moveTimeout)
+	defer ticker.Stop()
 
 	for {
 		select {
-		case <-r.terminateChan:
-			terminateSignal = true
-			return
-		case <-ticker.C:
-			if len(r.players) == 1 {
-				r.clients[0].send <- []byte("TIME_OUT\nNo one joined the game")
-			} else if len(r.players) >= 2 {
-				i := 0
-				for i < len(r.clients) {
-					select {
-					case r.clients[i].send <- []byte(fmt.Sprintf("TIME_OUT\n%s took too long to make a move", currentPlayer)):
-						i++
-					default:
-						i++
-					}
-
-				}
-			} else {
-				ticker.Reset(readWait)
-			}
-
 		case client := <-r.register:
-			if len(r.players) >= 2 {
-				client.send <- []byte("ROOM_UNAVAILABLE")
-			} else {
-				ticker.Reset(readWait)
+			fmt.Println("loop: player registered")
+			r.handleRegister(client, ticker)
 
-				if len(r.players) == 1 {
-					r.players[client] = games.PLAYER2
-					r.clients = append(r.clients, client)
-					initData := r.game.GetInitData()
-					if initData != "" {
-						r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetCurrentPlayerSymbol(), initData))
-						r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetOtherPlayerSymbol(), initData))
-					} else {
-						r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetCurrentPlayerSymbol(), 2))
-						r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetOtherPlayerSymbol(), 3))
-					}
-
-				} else {
-					r.players[client] = games.PLAYER1
-					r.clients = append(r.clients, client)
-					r.clients[0].send <- []byte("GAME_WAIT\nWaiting for the other player to join")
-				}
+		case clMsg := <-r.unregister:
+			fmt.Println("loop: player unregistered")
+			if toContinue := r.handleUnregister(clMsg); !toContinue {
+				return
 			}
 
-		case clmsg := <-r.unregister:
-			client := clmsg.client
-			if _, ok := r.players[client]; ok {
-				if len(r.clients) == 2 && unregisterCount < 1 {
-					unregisterCount++
-				} else {
-					return
-				}
-
+		case clMsg := <-r.broadcast:
+			fmt.Println("loop: player made a move")
+			if toContinue := r.handleBroadcast(clMsg, ticker); !toContinue {
+				return
 			}
 
-		case clmsg := <-r.broadcast:
-			client := clmsg.client
-			msg := clmsg.msg
-			moveby, ok := r.players[client]
-			if ok && len(r.players) == 2 {
-				if strings.Compare(string(msg), "opponent left the game") == 0 {
-					i := 0
-					for i < len(r.clients) {
-						select {
-						case r.clients[i].send <- []byte(fmt.Sprintf("GAME_EVENT\nFORFEITED\n%s left the game", currentPlayer)):
-							i++
-						default:
-							i++
-						}
-					}
+		case <-ticker.C:
+			fmt.Println("loop: ticker time out")
+			r.handleTimeout(ticker)
 
-				} else if moveby == r.game.GetCurrentPlayer() {
-
-					msgSplit := strings.Split(string(msg), " ")
-					// fmt.Println(string(msg))
-					msgArgs := make([]int, 0)
-					for _, msgElement := range msgSplit {
-						if k, err := strconv.Atoi(msgElement); err == nil {
-							msgArgs = append(msgArgs, k)
-						}
-					}
-
-					status, data := r.game.PerformMove(msgArgs...)
-					if status >= 0 {
-						if status != games.IN_PROGRESS {
-							for _, cl := range r.clients {
-								if status == games.DRAW {
-									cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "Draw"))
-								} else {
-									if status == r.players[cl] {
-										cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "you won"))
-									} else {
-										cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "you lost"))
-									}
-								}
-							}
-						} else {
-							prevPlayer := r.game.GetCurrentPlayer()
-							r.game.UpdateCurrentPlayer()
-							currentPlayer = r.game.GetCurrentPlayerSymbol()
-
-							for _, cl := range r.clients {
-								cl.send <- r.buildMoveEventResponse(currentPlayer, prevPlayer, data) // cl.send <- r.buildMoveEventResponse(currentPlayer, r.game.GetCurrentPlayer(), msgArgs) //[]byte(fmt.Sprintf("MOVE_EVENT\n%s\n%d\n%d\n%d\n%d", currentPlayer, r.game.GetCurrentPlayer(), msgArgs[0], msgArgs[1], msgArgs[2]))
-							}
-
-						}
-					}
-
-					ticker.Reset(readWait)
-				}
-
-			}
-
+		case <-r.stop:
+			fmt.Println("loop: room called to stop")
+			return
 		}
 	}
 }
 
-func (r *Room) buildMoveEventResponse(currentPlayerSymbol string, prevPlayer int, data []string) []byte {
-	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("MOVE_EVENT\n%s\n%d", currentPlayerSymbol, prevPlayer))
+func (r *Room) handleRegister(client *Client, ticker *time.Ticker) {
+	if len(r.players) >= 2 {
+		client.send <- []byte("ROOM_UNAVAILABLE")
+		return
+	}
+	ticker.Reset(moveTimeout)
+	r.clients = append(r.clients, client)
+	if len(r.players) == 0 {
+		r.players[client] = games.PLAYER1
+		client.send <- []byte("GAME_WAIT\nWaiting for the other player to join")
+	} else {
+		r.players[client] = games.PLAYER2
+		initData := r.game.GetInitData()
+		if initData != "" {
+			r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetCurrentPlayerSymbol(), initData))
+			r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%s", r.game.GetOtherPlayerSymbol(), initData))
+		} else {
+			r.clients[0].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetCurrentPlayerSymbol(), 2))
+			r.clients[1].send <- []byte(fmt.Sprintf("GAME_START\nYou are player %s\n%d", r.game.GetOtherPlayerSymbol(), 3))
+		}
+	}
+}
 
-	for _, el := range data {
-		sb.WriteString(fmt.Sprintf("\n%s", el))
+func (r *Room) handleUnregister(msg *ClientMessage) bool {
+	client := msg.client
+	if _, ok := r.players[client]; !ok {
+		return true
+	}
+
+	for _, cl := range r.clients {
+		if cl != client {
+			cl.send <- []byte("GAME_EVENT\nFORFEITED\nOpponent left the game")
+		}
+	}
+	r.removeClient(client)
+	return false
+}
+
+func (r *Room) handleBroadcast(msg *ClientMessage, ticker *time.Ticker) bool {
+	client := msg.client
+	moveBy, ok := r.players[client]
+	if !ok || len(r.players) != 2 {
+		return true
+	}
+
+	if moveBy != r.game.GetCurrentPlayer() {
+		// fmt.Println("hub:line: 126 :: moveBy != r.game.GetCurrentPlayer()")
+		return true
+	}
+
+	ticker.Reset(moveTimeout)
+
+	args := parseMove(msg.msg)
+	fmt.Println("hub:line:132 :: ", args)
+	status, data := r.game.PerformMove(args...)
+
+	if status >= 0 {
+		if status != games.IN_PROGRESS {
+			for _, cl := range r.clients {
+				if status == games.DRAW {
+					cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "Draw"))
+				} else {
+					if status == r.players[cl] {
+						cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "you won"))
+					} else {
+						cl.send <- []byte(fmt.Sprintf("GAME_EVENT\n%s", "you lost"))
+					}
+				}
+			}
+			return false
+		} else {
+			prevPlayer := r.game.GetCurrentPlayer()
+			r.game.UpdateCurrentPlayer()
+			currentPlayer := r.game.GetCurrentPlayerSymbol()
+
+			for _, cl := range r.clients {
+				cl.send <- r.buildMoveEventResponse(currentPlayer, prevPlayer, data)
+			}
+			return true
+		}
+	}
+	return true
+}
+
+func (r *Room) handleTimeout(ticker *time.Ticker) {
+	if len(r.players) == 1 {
+		r.clients[0].send <- []byte("TIME_OUT\nNo one joined the game")
+	} else if len(r.players) >= 2 {
+		for _, cl := range r.clients {
+			if r.players[cl] == r.game.GetCurrentPlayer() {
+				cl.send <- []byte("GAME_EVENT\nYou lost\nTook too long to make a move")
+			} else {
+				cl.send <- []byte(fmt.Sprintf("TIME_OUT\n%s took too long to make a move", r.currentPlayerSymbol))
+			}
+
+		}
+	} else {
+		ticker.Reset(moveTimeout)
+	}
+
+}
+
+func (r *Room) removeClient(client *Client) {
+	delete(r.players, client)
+
+	for i, cl := range r.clients {
+		if cl == client {
+			r.clients = append(r.clients[:i], r.clients[i+1:]...)
+			break
+		}
+	}
+}
+
+func (r *Room) buildMoveEventResponse(currentSymbol string, prevPlayer int, data []string) []byte {
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("MOVE_EVENT\n%s\n%d", currentSymbol, prevPlayer))
+	for _, d := range data {
+		sb.WriteString(fmt.Sprintf("\n%s", d))
 	}
 	return []byte(sb.String())
+}
+
+func parseMove(msg []byte) []int {
+	parts := strings.Fields(string(msg))
+	var args []int
+	for _, p := range parts {
+		if n, err := strconv.Atoi(p); err == nil {
+			args = append(args, n)
+		}
+	}
+	return args
 }

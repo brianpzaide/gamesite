@@ -1,37 +1,38 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"hunaidsav/gamesite/internal"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 )
+
+const redisTTL = 180 * time.Second
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-func (app *Config) serveHome(w http.ResponseWriter, r *http.Request) {
+func (app *App) serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(homePage))
 }
 
-func (app *Config) createRoom(w http.ResponseWriter, r *http.Request) {
+func (app *App) createRoom(w http.ResponseWriter, r *http.Request) {
 	gameType := chi.URLParam(r, "gametype")
 
 	if gameConstructor, ok := gameConstructors[gameType]; ok {
-		ch := make(chan string)
-		msg := &internal.CreateRoomMsg{GameConstructor: gameConstructor, GameType: gameType, ReceiveChan: ch}
-		//sending the message to create a room
-		internal.HubChan <- msg
-		//waiting for the message roomId from the hub
-		roomId := <-ch
+		roomId := app.hub.CreateRoom(gameConstructor, gameType)
+
+		app.rdb.Set(context.Background(), roomId, app.serverID, redisTTL).Err()
+
 		err := writeJSON(w, http.StatusOK, envelope{"roomid": roomId}, nil)
 		if err != nil {
-			app.ErrorLog.Println(err)
+			app.errorLog.Println(err)
 			http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
 		}
 		return
@@ -39,31 +40,23 @@ func (app *Config) createRoom(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func (app *Config) getRoom(w http.ResponseWriter, r *http.Request) {
+func (app *App) getRoom(w http.ResponseWriter, r *http.Request) {
 	roomId := chi.URLParam(r, "roomId")
 
-	ch := make(chan string)
-	msg := &internal.RoomExistsMsg{RoomId: roomId, ReceiveChan: ch}
-	//sending the message to create a room
-	internal.HubChan <- msg
-	//waiting for the message gameType from the hub
-	gameType := <-ch
+	gameType, roomExists := app.hub.RoomExists(roomId)
 
-	if gameType != "" {
+	if roomExists {
 		gamePage := gamePages[gameType]
-
-		w.Write([]byte(fmt.Sprintf(gamePage, roomId)))
+		fmt.Fprintf(w, gamePage, roomId)
 		return
 	}
 	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte(fmt.Sprintf("No room found with Id= %s", roomId)))
+	fmt.Fprintf(w, "No room found with Id= %s", roomId)
 }
 
-func (app *Config) serveWs(w http.ResponseWriter, r *http.Request) {
+func (app *App) serveWs(w http.ResponseWriter, r *http.Request) {
 
 	roomId := chi.URLParam(r, "roomId")
-
-	// fmt.Println("Main: connecting to hub", roomId)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	log.Println("connected", conn.RemoteAddr())
@@ -74,17 +67,12 @@ func (app *Config) serveWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch := make(chan bool)
-	msg := &internal.CreateClientMsg{RoomId: roomId, Conn: conn, ReceiveChan: ch}
-	//sending the message to create a client
-	internal.HubChan <- msg
-	//waiting for the confirmation if client is created from the hub
-	ok := <-ch
+	err = app.hub.AddClient(roomId, conn)
 
-	if !ok {
-		log.Println("client created:", ok)
+	if err != nil {
+		log.Println("client not created")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("No room found with Id= %s", roomId)))
+		fmt.Fprintf(w, "No room found with Id= %s", roomId)
 		return
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 )
 
@@ -71,14 +70,8 @@ func main() {
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 	fs := initFS()
-
-	app := &Config{
-		fs:       fs,
-		InfoLog:  infoLog,
-		ErrorLog: errorLog,
-	}
-
 	setHomePage(fs)
 
 	for k, v := range gamePages {
@@ -92,22 +85,28 @@ func main() {
 	if *redisAddr == "" {
 		*redisAddr = "localhost:6379"
 	}
-
 	rdb, err := getRedisClient()
 	if err != nil {
 		log.Fatalln("Error connecting to redis.")
 	}
 
-	stopHub := make(chan struct{})
-	mainWg := &sync.WaitGroup{}
-	internal.StartHub(rdb, *serverID, mainWg, stopHub)
+	hub := internal.NewHub()
+
+	app := &App{
+		fs:       fs,
+		infoLog:  infoLog,
+		errorLog: errorLog,
+		serverID: *serverID,
+		hub:      hub,
+		rdb:      rdb,
+	}
 
 	srv := &http.Server{
 		Addr:    *addr,
 		Handler: app.routes(),
 	}
-
 	idleConnsClosed := make(chan struct{})
+
 	go func() {
 		//make a chan to listen for term signals and wait for the signals
 		quit := make(chan os.Signal, 1)
@@ -123,16 +122,12 @@ func main() {
 	//run the server in the main go routine
 	err = srv.ListenAndServe()
 	log.Println("Listening on port", addr)
-	if err != nil {
+
+	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
 	<-idleConnsClosed
 
-	//send terminating signal to the hub and
-	close(stopHub)
-
-	//wait for the hub to shutdown
-	mainWg.Wait()
-
+	hub.Shutdown()
 	rdb.Close()
 }

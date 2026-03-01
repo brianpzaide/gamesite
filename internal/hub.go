@@ -67,7 +67,7 @@ func (h *Hub) Shutdown() {
 	defer h.mu.RUnlock()
 
 	for _, room := range h.rooms {
-		room.Stop()
+		close(room.stop)
 		delete(h.rooms, room.ID)
 	}
 }

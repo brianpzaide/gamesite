@@ -212,7 +212,3 @@ func parseMove(msg []byte) []int {
 	}
 	return args
 }
-
-func (r *Room) Stop() {
-	close(r.stop)
-}
